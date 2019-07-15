@@ -1,87 +1,80 @@
-from app import app
-from app.forms import LoginForm
-import os
+
+# Make a CRON Job to dump into a database 
+# look at using docker-compose 
+# Thenm make into a rest api 
+import requests
 from bs4 import BeautifulSoup as soup
-from urllib.request import urlopen as zUrl
-from flask import render_template, request, url_for, redirect
-import json
-from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support import expected_conditions as EC
 
-def json_output():
-	#url path
-	url = 'https://www.horoscope.com/zodiac-signs'
-	#open url
-	page = zUrl(url)
-	#read url
-	z_read = page.read()
-	page.close()
-	#read into beautifulsoup
-	z_parse = soup(z_read, 'html.parser')
-	#parse html tags
-	containers = z_parse.findAll('div', {'class' : 'no-events' })
-	#iterate html tags
-	signs = [(i.find('h4').text) for i in containers]
-	#iterate second html tags
-	dates = [(j.find('p').text) for j in containers]
-	#coverting into dictionary
-	dick = dict(zip(signs, dates))
-	#saving data into json form
-	data = json.dumps(dick)
+# create base url for all requests to use
+base_url = "http://pornhub.com"
+# query params for trending page
+query_params = "/pornstars/?o=t"
 
-def porn_bday():
-	#url path
-	url = 'https://www.pornhub.com/pornstars?o=t'
-	#geckodriver path
-	chromedriver = '/usr/bin/chromedriver'
-	#calling firefox options
-	options = webdriver.ChromeOptions()
-	#adding option to run headless
-	options.add_argument('headless')
-	#calling webdriver to work with webpage
-	driver = webdriver.Chrome(executable_path = chromedriver,
-		chrome_options = options)
-	driver.get(url)
-	#finding element to access profile
-	star_button = driver.find_element_by_css_selector("a[href*='/pornstar/']")
-	#click javascript link
-	click = driver.execute_script('arguments[0].click();', star_button)
-	#waiting for page to fully load
-	wait = WebDriverWait(driver, 10)
+# scrape trending page
+resp = requests.get(base_url + query_params)
+resp.raise_for_status()
+
+# create soup for the trending page
+trending_page = soup(resp.text, "lxml")
+
+# extract pornstar hrefs
+# dedupe
+pornstar_divs = trending_page.select("a[href*='/pornstar/']")
+pornstar_birthday_dict = dict()
+
+# iterate over pornstar divs 
+for star in pornstar_divs:
+	# get individual page hrefs
+	href = star.attrs['href']
+	print(href)
+	# scrape individual page
+	resp = requests.get(base_url + href)
+	print(resp)
+	resp.raise_for_status()
+	
+	# build individual pornstar soup
+	individual_pornstar_page = soup(resp.text, "lxml")
+
+	# extract name
+	name = [item.text.strip() for item in individual_pornstar_page.select('div.name')][0]
+	print(name)
+
+	# Try to extract the birthday from the soup span
 	try:
-		wait.until(EC.url_contains('-'))
-	except TimeOutException:
-		print("Unable to load")
-	#getting redirected url of stars profile
-	new_url = driver.current_url
-	#opening url
-	page = zUrl(new_url)
-	#reading into beautifulsoup
-	try:
-		p_read = page.read()
-		page.close()
-	except AssertionError as e:
+		bday_span = individual_pornstar_page.find('span', itemprop = 'birthDate')
+		bday = bday_span.text
+		print(bday)
+	except AttributeError:
+		print("No birthday, skipping")
+		continue
+		# In case there is no birtday (a soup span object) we break
+	except Exception as e:
+		print("fuck")
 		print(e)
-		print('Shit no read')
-	#parsing with beautifulsoup
-	p_parse = soup(p_read, 'lxml')
-	#iterating over profiles, grabbing name
-	names = [item.text.strip() for item in p_parse.select('div.name')]
 
-	def stars_bday():
-		#parse stars birthday
-		try:
-			b_day = p_parse.find('span', itemprop='birthDate')
-		except AssertionError as e:
-			print(e)
-			print('Shit did not read')
-		#zip together both parsings
-		full_list = dict(zip(names, b_day))
-		#write to json
-		bday_data = json.dumps(full_list)
+	# make new dict entry
+	name_bday = { name: bday }
 
+	# Must not be a dupe
+	if name not in pornstar_birthday_dict:
+		print("fresh insert")
+		# insert dict_entry
+		pornstar_birthday_dict.update(name_bday)
+	else:
+		print("dupe skipping")
+
+#write to json
+from pprint import pprint as pp
+pp(pornstar_birthday_dict)
+print(len(pornstar_birthday_dict))
+
+import json
+porn_json = json.dumps(pornstar_birthday_dict)
+print(porn_json)
+
+# Python datetime library to normalize
+def normalize_datetime(bday_str): 
+	pass
 
 @app.route('/')
 @app.route('/login', methods = ['GET', 'POST'])
