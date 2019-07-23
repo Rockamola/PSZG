@@ -4,7 +4,7 @@
 # Thenm make into a rest api 
 import requests
 from bs4 import BeautifulSoup as soup
-import datetime
+from datetime import datetime
 
 # create base url for all requests to use
 base_url = "http://pornhub.com"
