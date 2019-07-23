@@ -4,6 +4,7 @@
 # Thenm make into a rest api 
 import requests
 from bs4 import BeautifulSoup as soup
+import datetime
 
 # create base url for all requests to use
 base_url = "http://pornhub.com"
@@ -73,7 +74,7 @@ porn_json = json.dumps(pornstar_birthday_dict)
 print(porn_json)
 
 # Python datetime library to normalize
-def normalize_datetime(bday_str): 
+def normalize_datetime(bday_str, porn_json): 
 	pass
 
 @app.route('/')
