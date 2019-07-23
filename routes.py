@@ -75,7 +75,7 @@ print(porn_json)
 
 # Python datetime library to normalize
 def normalize_datetime(bday_str, porn_json): 
-	pass
+	converter = datetime()
 
 @app.route('/')
 @app.route('/login', methods = ['GET', 'POST'])
