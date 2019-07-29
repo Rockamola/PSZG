@@ -4,33 +4,47 @@
 # Thenm make into a rest api 
 import requests
 from bs4 import BeautifulSoup as soup
+import json
+from pprint import pprint as pp
 from datetime import datetime
+import pdb
+import threading
+from concurrent.futures import ThreadPoolExecutor
+import logging
 
-# create base url for all requests to use
-base_url = "http://pornhub.com"
-# query params for trending page
-query_params = "/pornstars/?o=t"
+logger = logging.basicConfig(filename = "logs.txt", level = logging.INFO, filemode = "w")
 
-# scrape trending page
-resp = requests.get(base_url + query_params)
-resp.raise_for_status()
+#add logger, change levels 
 
-# create soup for the trending page
-trending_page = soup(resp.text, "lxml")
 
-# extract pornstar hrefs
-# dedupe
-pornstar_divs = trending_page.select("a[href*='/pornstar/']")
-pornstar_birthday_dict = dict()
+LOCK = threading.Lock()
 
-# iterate over pornstar divs 
-for star in pornstar_divs:
+#use selenium headless
+
+#birthday converter
+
+def get_bday_datetime(bday):
+	try:
+		item = datetime.strptime(bday, "%b %d, %Y")
+	except Exception:
+		print(f"First datetime conversion failed for {bday}, trying second format")
+		try:
+			item = datetime.strptime(bday, "%Y-%m-%d") # other datetime fmt
+		except Exception:
+			print(f"Second datetime conversion failed for {bday}, returning None")
+			# str replace -0001 with 9999
+			return None
+	
+	new_bday = datetime.strftime(item, "%b %d, %Y") # may throw an error if its already right, not sure
+	return new_bday
+
+
+
+def getpornstar(star):
 	# get individual page hrefs
 	href = star.attrs['href']
-	print(href)
 	# scrape individual page
 	resp = requests.get(base_url + href)
-	print(resp)
 	resp.raise_for_status()
 	
 	# build individual pornstar soup
@@ -38,44 +52,66 @@ for star in pornstar_divs:
 
 	# extract name
 	name = [item.text.strip() for item in individual_pornstar_page.select('div.name')][0]
-	print(name)
-
 	# Try to extract the birthday from the soup span
 	try:
 		bday_span = individual_pornstar_page.find('span', itemprop = 'birthDate')
-		bday = bday_span.text
-		print(bday)
+		bday_str = bday_span.text
+		print(f"Trying to convert {name} {bday_str}")
+		bday = get_bday_datetime(bday_str)
+		if not bday:
+			return
 	except AttributeError:
-		print("No birthday, skipping")
-		continue
+		print(f"No birthday for {name}, skipping")
+		return
 		# In case there is no birtday (a soup span object) we break
 	except Exception as e:
 		print("fuck")
 		print(e)
+		return
 
 	# make new dict entry
 	name_bday = { name: bday }
 
 	# Must not be a dupe
 	if name not in pornstar_birthday_dict:
-		print("fresh insert")
+		print(f"fresh insert for {name}")
 		# insert dict_entry
-		pornstar_birthday_dict.update(name_bday)
+		with LOCK:
+			pornstar_birthday_dict.update(name_bday)
 	else:
-		print("dupe skipping")
+			print(f"dupe for {name}")
 
-#write to json
-from pprint import pprint as pp
-pp(pornstar_birthday_dict)
-print(len(pornstar_birthday_dict))
 
-import json
-porn_json = json.dumps(pornstar_birthday_dict)
-print(porn_json)
 
-# Python datetime library to normalize
-def normalize_datetime(bday_str, porn_json): 
-	converter = datetime()
+if __name__ == '__main__':
+	# log.info('Beginning scraper')
+	# create base url for all requests to use
+	base_url = "http://pornhub.com"
+	# query params for trending page
+	query_params = "/pornstars/?o=t"
+
+	# scrape trending page
+	resp = requests.get(base_url + query_params)
+	resp.raise_for_status()
+	# log.debug("Base url response resp.text")
+	# create soup for the trending page
+	trending_page = soup(resp.text, "lxml")
+	# extract pornstar hrefs
+	# dedupe
+	pornstar_divs = trending_page.select("a[href*='/pornstar/']")
+	pornstar_birthday_dict = dict()
+	import time
+	start_time = time.time()
+
+	# iterate over pornstar divs
+	#with ThreadPoolExecutor() as executor:
+	for star in pornstar_divs:
+		getpornstar(star)
+	#write to json
+	print(time.time() - start_time)
+	pp(pornstar_birthday_dict)
+	print(len(pornstar_birthday_dict))
+
 
 @app.route('/')
 @app.route('/login', methods = ['GET', 'POST'])
