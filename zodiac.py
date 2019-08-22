@@ -2,8 +2,14 @@ from bs4 import BeautifulSoup as soup
 from urllib.request import urlopen as zUrl
 import json
 from pprint import pprint as pp
+from pymongo import MongoClient
 
 
+client = MongoClient("mongodb://127.0.0.1:27017/?authSource=admin")
+
+database = client["STARS"]
+
+zodiac_collection = database["ZODIAC"]
 
 url = 'https://www.horoscope.com/zodiac-signs'
 
@@ -20,10 +26,7 @@ signs = [(i.find('h4').text) for i in containers]
 
 dates = [(j.find('p').text) for j in containers]
 
-dick = dict(zip(dates, signs))
+signs_dict = dict(zip(dates, signs))
 
-with open('zodiac.json', mode = 'w') as new_file:
-	(json.dump(dick, new_file))
+zodiac_collection.insert_one(signs_dict)
 
-
-#something like {'Aries'['Mar.21' : 'Apr.20']} you get the idea
