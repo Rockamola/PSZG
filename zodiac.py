@@ -1,7 +1,5 @@
 from bs4 import BeautifulSoup as soup
 from urllib.request import urlopen as zUrl
-import json
-from pprint import pprint as pp
 from pymongo import MongoClient
 
 
