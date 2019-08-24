@@ -119,11 +119,6 @@ if __name__ == '__main__':
         bday_collection.insert_one(pornstar_birthday_dict)
         logger.info("Database entry successful")
 
-    #print(time.time() - start_time)
-    #pp(pornstar_birthday_dict)
-    #print(len(pornstar_birthday_dict))
-    #porn_json = json.dumps(pornstar_birthday_dict)
-    #print(porn_json)
   
 
     #assign id for inserting into db?
@@ -131,23 +126,3 @@ if __name__ == '__main__':
 #insert with iteration indivudually into db
 
 
-@app.route('/')
-@app.route('/login', methods = ['GET', 'POST'])
-def submittance():
-	form = LoginForm()
-	#if form.validate_on_submit(submit_1):
-		#flash("Congrats. You're entering the site")
-	#return redirect(url_for('pszg'))
-	#if form.validate_on_submit(submit_2):
-
-	return render_template('login.html', form = form)
-	
-
-
-@app.route('/pszg')
-def pszg():
-	info = "Wanna see how it works"
-	return render_template('pszg.html', info = info)	
-
-if __name__ == '__main__':
-	app.run(Debug = True)
