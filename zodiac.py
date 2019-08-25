@@ -7,7 +7,7 @@ client = MongoClient("mongodb://127.0.0.1:27017/?authSource=admin")
 
 database = client["STARS"]
 
-zodiac_collection = database["ZODIAC"]
+zodiac_collection = database["mycol"]
 
 url = 'https://www.horoscope.com/zodiac-signs'
 
@@ -26,5 +26,4 @@ dates = [(j.find('p').text) for j in containers]
 
 signs_dict = dict(zip(dates, signs))
 
-zodiac_collection.insert_one(signs_dict)
-
+zodiac_collection.insert_one({"zodiac_info" : signs_dict })
