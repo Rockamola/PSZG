@@ -127,28 +127,24 @@ if __name__ == "__main__":
         pornstar_birthday_dict.update()
     #create dataframe variable, same as with dictionary, apply same logic as with dictionary, but with date conversion as it insert?
     #look into if date format can be used in for loop with pandas dataframe
-
-    #format before sticking into dataframe, move bday_convert here?
-
+    #create dataframe/convert and simplify data
     star_data = pd.DataFrame(list(pornstar_birthday_dict.items()),
             columns = ["stars", "birthdays"])
     star_data["birthdays"] = star_data["birthdays"].astype("datetime64")
-
-    dates_range_aqua = pd.DataFrame(data = {"zodiac_dates" : pd.date_range(start = "1980-01-20", end = "2000-12-31")})
+    star_data["birthdays"] = star_data["birthdays"].dt.strftime("%m-%d")
+    #create dataframe for aquaris date range
+    dates_range_aqua = pd.DataFrame(data = {"zodiac_dates" : pd.date_range(start = "1980-01-20", end = "1980-2-21")})
+    dates_range_aqua["zodiac_dates"] = dates_range_aqua["zodiac_dates"].dt.strftime("%m-%d")
     pdb.set_trace()
-    
-    frames = [star_data, dates_range_aqua]
 
-    result = pd.concat(frames, sort = False)
+   
 
+    result = pd.concat([star_data, dates_range_aqua],)
 
-    
-    for i in star_data:
-        bday_stf = star_data.sort_index()
-        zod_stf = dates_range_aqua.sort_index()
-        if bday_stf == dates_range_aqua:
-            print({star_data.keys : "aquaris"})
-
+    for i in result:
+        if result.any(["birthdays"]) == result.any(["zodiac_dates"]):
+            print({"aquaris" : result["stars"]})
+        
 
     '''
         for column in dates_range_aqua[pd.date_range]:
